@@ -18,7 +18,7 @@ Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
     CLI 1.0: ```azure group create 'ContosoResourceGroup' 'East Asia'```
 
-    CLI 2.0: ```az group create --name "ContosoResourceGroupNew2" --location "East Asia"```
+    CLI 2.0: ```az group create --name "ContosoResourceGroup" --location "East Asia"```
 
     PSH: ```New-AzureRmResourceGroup –Name 'ContosoResourceGroup' –Location 'East Asia'```
 
@@ -34,7 +34,7 @@ Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
     CLI 1.0: ```azure keyvault create --vault-name 'ContosoKeyVault' --resource-group 'ContosoResourceGroup' --location 'East Asia'```
 
-    CLI 2.0: ```az keyvault create --name "testVaultNew3" --resource-group "ContosoResourceGroupNew2" --location "East Asia"```
+    CLI 2.0: ```az keyvault create --name "ContosoKeyVault" --resource-group "ContosoResourceGroup" --location "East Asia"```
 
     PSH: ```New-AzureRmKeyVault -VaultName 'ContosoKeyVault' -ResourceGroupName 'ContosoResourceGroup' -Location 'East Asia'```
 
@@ -42,7 +42,7 @@ Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
     CLI 1.0: ```azure keyvault key create --vault-name 'ContosoKeyVault' --key-name 'ContosoFirstKey' --destination software```
 
-    CLI 2.0: ```az keyvault key create --vault-name "testVaultNew3" --name "ContosoFirstKey" --protection software```
+    CLI 2.0: ```az keyvault key create --vault-name "ContosoKeyVault" --name "ContosoFirstKey" --protection software```
 
     PSH: ```$key = Add-AzureKeyVaultKey -VaultName 'ContosoKeyVault' -Name 'ContosoFirstKey' -Destination 'Software'```
 
@@ -50,7 +50,7 @@ Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
     CLI 1.0: ```azure keyvault secret set --vault-name 'ContosoKeyVault' --secret-name 'SQLPassword' --value 'Pa$$w0rd'```
 
-    CLI 2.0: ```az keyvault secret set --vault-name "testVaultNew3" --name "SQLPassword" --value "Pa$$w0rd"```
+    CLI 2.0: ```az keyvault secret set --vault-name "ContosoKeyVault" --name "SQLPassword" --value "Pa$$w0rd"```
 
     PSH: ```$secretvalue = ConvertTo-SecureString 'Pa$$w0rd' -AsPlainText -Force```    
          ```$secret = Set-AzureKeyVaultSecret -VaultName 'ContosoKeyVault' -Name 'SQLPassword' -SecretValue $secretvalue```
