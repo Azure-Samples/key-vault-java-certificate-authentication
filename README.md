@@ -8,37 +8,49 @@ Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
 * Login to Account: 
 
-    CLI: ```azure login```
+    CLI 1.0: ```azure login```
+
+    CLI 2.0: ```az login```
 
     PSH: ```Login-AzureRmAccount```
 
 * Create new resource group:
 
-    CLI: ```azure group create 'ContosoResourceGroup' 'East Asia'```
+    CLI 1.0: ```azure group create 'ContosoResourceGroup' 'East Asia'```
+
+    CLI 2.0: ```az group create --name "ContosoResourceGroupNew2" --location "East Asia"```
 
     PSH: ```New-AzureRmResourceGroup –Name 'ContosoResourceGroup' –Location 'East Asia'```
 
 * Register Key Vault resource provider, if error "The subscription is not registered to use namespace 'Microsoft.KeyVault'":
 
-    CLI: ```azure provider register Microsoft.KeyVault```
+    CLI 1.0: ```azure provider register Microsoft.KeyVault```
+
+    CLI 2.0: ```az provider register --namespace Microsoft.KeyVault```
 
     PSH: ```Register-AzureRmResourceProvider -ProviderNamespace "Microsoft.KeyVault"```
 
 * Create a key vault:
 
-    CLI: ```azure keyvault create --vault-name 'ContosoKeyVault' --resource-group 'ContosoResourceGroup' --location 'East Asia'```
+    CLI 1.0: ```azure keyvault create --vault-name 'ContosoKeyVault' --resource-group 'ContosoResourceGroup' --location 'East Asia'```
+
+    CLI 2.0: ```az keyvault create --name "testVaultNew3" --resource-group "ContosoResourceGroupNew2" --location "East Asia"```
 
     PSH: ```New-AzureRmKeyVault -VaultName 'ContosoKeyVault' -ResourceGroupName 'ContosoResourceGroup' -Location 'East Asia'```
 
 * Add key to key vault:
 
-    CLI: ```azure keyvault key create --vault-name 'ContosoKeyVault' --key-name 'ContosoFirstKey' --destination software```
+    CLI 1.0: ```azure keyvault key create --vault-name 'ContosoKeyVault' --key-name 'ContosoFirstKey' --destination software```
+
+    CLI 2.0: ```az keyvault key create --vault-name "testVaultNew3" --name "ContosoFirstKey" --protection software```
 
     PSH: ```$key = Add-AzureKeyVaultKey -VaultName 'ContosoKeyVault' -Name 'ContosoFirstKey' -Destination 'Software'```
 
 * Add a secret to key vault:
 
-    CLI: ```azure keyvault secret set --vault-name 'ContosoKeyVault' --secret-name 'SQLPassword' --value 'Pa$$w0rd'```
+    CLI 1.0: ```azure keyvault secret set --vault-name 'ContosoKeyVault' --secret-name 'SQLPassword' --value 'Pa$$w0rd'```
+
+    CLI 2.0: ```az keyvault secret set --vault-name "testVaultNew3" --name "SQLPassword" --value "Pa$$w0rd"```
 
     PSH: ```$secretvalue = ConvertTo-SecureString 'Pa$$w0rd' -AsPlainText -Force```    
          ```$secret = Set-AzureKeyVaultSecret -VaultName 'ContosoKeyVault' -Name 'SQLPassword' -SecretValue $secretvalue```
@@ -58,13 +70,13 @@ App registration and refresh scenario (ApplicationId is clientId). This can be d
 
 * Azure CLI and PowerShell (PSH) commands are below:
 
-    CLI: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-keys '[\"decrypt\",\"sign\"]'```
+    CLI 1.0: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-keys '[\"decrypt\",\"sign\"]'```
 
     PSH: ```Set-AzureRmKeyVaultAccessPolicy -VaultName 'ContosoKeyVault' -ServicePrincipalName 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed -PermissionsToKeys decrypt,sign```
 
 * If you want to authorize that same application to read secrets in your vault, run the following:
 
-    CLI: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-secrets '[\"get\"]'```
+    CLI 1.0: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-secrets '[\"get\"]'```
 
     PSH: ```Set-AzureRmKeyVaultAccessPolicy -VaultName 'ContosoKeyVault' -ServicePrincipalName 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed -PermissionsToSecrets Get```
 
