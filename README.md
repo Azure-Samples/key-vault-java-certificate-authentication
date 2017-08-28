@@ -6,7 +6,7 @@ Create vault and store keys and secrets in vault this can be done through powerS
 
 Azure CLI and PowerShell (PSH) commands for **step 2** are below:
 
-* Login to Account: 
+* Login to account: 
 
     CLI 1.0: ```azure login```
 
@@ -66,11 +66,13 @@ Example using PowerShell:
 
 
 **Step 2)**
-App registration and refresh scenario (ApplicationId is clientId). This can be done through PowerShell, Azure CLI 2.0 or the portal.
+Application registration and refresh scenario (applicationId is clientId). This can be done through PowerShell, Azure CLI 2.0 or the portal. If your vault name is ContosoKeyVault and the application you want to authorize has a client ID of 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed.
 
 * Azure CLI and PowerShell (PSH) commands are below:
 
     CLI 1.0: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-keys '[\"decrypt\",\"sign\"]'```
+
+    CLI 2.0: ```az keyvault set-policy --name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --key-permissions decrypt sign```
 
     PSH: ```Set-AzureRmKeyVaultAccessPolicy -VaultName 'ContosoKeyVault' -ServicePrincipalName 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed -PermissionsToKeys decrypt,sign```
 
@@ -78,17 +80,22 @@ App registration and refresh scenario (ApplicationId is clientId). This can be d
 
     CLI 1.0: ```azure keyvault set-policy --vault-name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --perms-to-secrets '[\"get\"]'```
 
+    CLI 2.0: ```az keyvault set-policy --name 'ContosoKeyVault' --spn 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed --secret-permissions get```
+
     PSH: ```Set-AzureRmKeyVaultAccessPolicy -VaultName 'ContosoKeyVault' -ServicePrincipalName 8f8c4bbd-485b-45fd-98f7-ec6300b7b4ed -PermissionsToSecrets Get```
 
-Note: Permissions for listing keys or secrets would require including: ```\"list\"```
+Note: Permissions for listing keys or secrets would require including: ```\"list\"``` in CLI 1.0 and ``` list ``` in CLI 2.0. 
 
-See section on registering App with Azure Active Directory using PowerShell:
+See section on registering application with Azure Active Directory using PowerShell:
 <https://docs.microsoft.com/en-us/azure/key-vault/key-vault-get-started>
 
-See section on registering App with Azure Active Directory using Azure CLI:
+See section on registering application with Azure Active Directory using Azure CLI:
 <https://docs.microsoft.com/en-us/azure/key-vault/key-vault-manage-with-cli>
 
-More information on App Registration:
+See section on registering application with Azure Active Directory using Azure CLI 2.0:
+<https://docs.microsoft.com/en-us/azure/key-vault/key-vault-manage-with-cli2>
+
+More information on application registration:
 <https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-integrating-applications>
 
 **Step 3)**
