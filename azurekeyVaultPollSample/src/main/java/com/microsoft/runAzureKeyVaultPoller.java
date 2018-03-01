@@ -64,9 +64,9 @@ public class runAzureKeyVaultPoller
             final String path = props.getProperty("pathPfx");
             final String vaultUrl = props.getProperty("vaultBaseUrl");
 
-            JavaKeyVaultAuthenticator authenicator = new JavaKeyVaultAuthenticator();
+            JavaKeyVaultAuthenticator authenticator = new JavaKeyVaultAuthenticator();
 
-            KeyVaultClient kvClient = authenicator.getAuthenication(path, pfxPassword, clientId);
+            KeyVaultClient kvClient = authenticator.getAuthentication(path, pfxPassword, clientId);
 
             runSample(kvClient, vaultUrl);
         }
