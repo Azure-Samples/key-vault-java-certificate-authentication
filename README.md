@@ -4,8 +4,17 @@ platforms: java
 author: schaabs
 ---
 
-**Java Azure Key Vault Deploy Certificates to Vault and Certificate based Authenication**  
+# Java Azure Key Vault Deploy Certificates to Vault and Certificate based Authenication
 This Sample describes how to create a vault, and put keys and secrets in the vault. It then shows how to inject into a VM at deployment a pfx file from the vault using a template. The sample also shows signing and verification of signature with both Java Security and Azure Key Vault REST used for verfiying the signature. The code calls the vault for the keys and secrets and writes these values to console. This sample also shows how to authenicate using a pfx file.
+
+## Prerequisites
+- Java 1.7+
+- Azure service principal registration (through using
+[Azure CLI](http://azure.microsoft.com/documentation/articles/resource-group-authenticate-service-principal-cli/),
+[PowerShell](http://azure.microsoft.com/documentation/articles/resource-group-authenticate-service-principal/)
+or [Azure Portal](http://azure.microsoft.com/documentation/articles/resource-group-create-service-principal-portal/)).
+
+## Getting started
 
 **Step 1)**
 Create vault and store keys and secrets in vault this can be done through powerShell, Azure CLI or Java (Vault management sdk which is different from Key Vault client sdk), or using the Azure Portal.
