@@ -50,22 +50,15 @@ public class runAzureKeyVaultPoller
     public static void main( String[] args )
     {
         try{
-            final String clientId;
-            final String tenantId;
-            final String pathPfx;
-            final String pfxPassword;
-            final String resourceGroupName;
-            final String vaultBaseUrl;
-
             Properties props = new Properties();
             props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("azure.properties"));
 
-            clientId = props.getProperty("clientId");
-            tenantId = props.getProperty("tenantId");
-            pathPfx = props.getProperty("pathPfx");
-            pfxPassword = props.getProperty("pfxPassword");
-            resourceGroupName = props.getProperty("resourceGroupName");
-            vaultBaseUrl = props.getProperty("vaultBaseUrl");
+            final String clientId = props.getProperty("clientId");
+            final String tenantId = props.getProperty("tenantId");
+            final String pathPfx = props.getProperty("pathPfx");
+            final String pfxPassword = props.getProperty("pfxPassword");
+            final String resourceGroupName = props.getProperty("resourceGroupName");
+            final String vaultBaseUrl = props.getProperty("vaultBaseUrl");
 
             JavaKeyVaultAuthenticator authenticator = new JavaKeyVaultAuthenticator();
             TokenCredential tokenCredential = authenticator.getTokenCredential(clientId, tenantId, pathPfx, pfxPassword);
