@@ -3,7 +3,6 @@ package com.microsoft;
 import com.azure.resourcemanager.keyvault.models.Vault;
 import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
 import com.azure.security.keyvault.keys.cryptography.models.SignResult;
-
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.scheduling.annotation.Async;
@@ -20,8 +19,6 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.security.Signature;
 import java.security.PublicKey;
-
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -93,7 +90,7 @@ public class SignVerifySamplesKeyVault {
      *            digestInfo:the digest from the hashing
      */
     @Async
-    public static Future<Boolean> KeyVaultVerifyREST(CryptographyAsyncClient cryptographyAsyncClient, digestSignResult digestSignResult) throws InterruptedException, ExecutionException {
+    public static Future<Boolean> KeyVaultVerifyREST(CryptographyAsyncClient cryptographyAsyncClient, digestSignResult digestSignResult) {
         AtomicReference<AsyncResult<Boolean>> booleanAsyncResult = new AtomicReference<>(new AsyncResult<>(null));
 
         //verify using asynchronous call passing in uri of the key, type of algorithm to use, digest, result of signing and null for callback function to handle responses

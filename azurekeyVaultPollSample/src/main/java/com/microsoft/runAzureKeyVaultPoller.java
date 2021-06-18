@@ -1,6 +1,5 @@
 package com.microsoft;
 
-
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.resourcemanager.keyvault.models.Vault;
@@ -72,7 +71,7 @@ public class runAzureKeyVaultPoller
             TokenCredential tokenCredential = authenticator.getTokenCredential(clientId, tenantId, pathPfx, pfxPassword);
             Vault vault = authenticator.getVault(tokenCredential, resourceGroupName, vaultBaseUrl);
 
-            runSample(tokenCredential, vaultBaseUrl,vault);
+            runSample(tokenCredential, vaultBaseUrl, vault);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -83,7 +82,7 @@ public class runAzureKeyVaultPoller
      * @param tokenCredential Use it to build KeyClient,secretClient
      * @param vaultBaseUrl the url of the vault where the secret and keys are stored
      */
-    public static void runSample(TokenCredential tokenCredential,String vaultBaseUrl, Vault vault) throws InterruptedException {
+    public static void runSample(TokenCredential tokenCredential, String vaultBaseUrl, Vault vault) throws InterruptedException {
 
         KeyClient keyClient = new KeyClientBuilder().credential(tokenCredential).vaultUrl(vaultBaseUrl).buildClient();
         SecretClient secretClient = new SecretClientBuilder().credential(tokenCredential).vaultUrl(vaultBaseUrl).buildClient();

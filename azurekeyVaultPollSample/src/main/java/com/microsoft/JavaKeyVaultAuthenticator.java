@@ -24,7 +24,7 @@ public class JavaKeyVaultAuthenticator {
      *            the password to the pfx file, this can be empty if thats the value
      *            given when it was created
      */
-    public TokenCredential getTokenCredential( String  clientId, String tenantId, String pathPfx, String pfxPassword) {
+    public TokenCredential getTokenCredential(String clientId, String tenantId, String pathPfx, String pfxPassword) {
 
         TokenCredential credential = new ClientCertificateCredentialBuilder()
                 .clientId(clientId)
@@ -45,7 +45,7 @@ public class JavaKeyVaultAuthenticator {
      *            Use vaultBaseUrl to find the vault to be operated in Vaults
      * @return
      */
-    public Vault getVault(TokenCredential credential, String resourceGroupName, String vaultBaseUrl){
+    public Vault getVault(TokenCredential credential, String resourceGroupName, String vaultBaseUrl) {
 
         AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
         KeyVaultManager manager = KeyVaultManager.authenticate(credential, profile);
