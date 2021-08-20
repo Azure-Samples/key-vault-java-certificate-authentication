@@ -95,7 +95,7 @@ public class runAzureKeyVaultPoller
         System.out.println("Now listing keys and secrets in Azure Key Vault.");
 
         keyClient.listPropertiesOfKeys().stream().forEach(keyProperty -> {
-            System.out.printf("key attributes : enabled is %s, notBefore is %s, expires is %s, created is %s, updated is %s \n",
+            System.out.printf("key attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
                     keyProperty.isEnabled(), keyProperty.getNotBefore(), keyProperty.getExpiresOn(), keyProperty.getCreatedOn(), keyProperty.getUpdatedOn());
             System.out.println("key tag is: " + keyProperty.getTags());
             System.out.println("key id: " + keyProperty.getId());
@@ -111,7 +111,7 @@ public class runAzureKeyVaultPoller
         });
 
        secretClient.listPropertiesOfSecrets().stream().forEach(secretProperty -> {
-            System.out.printf("secret attributes : enabled is %s, notBefore is %s, expires is %s, created is %s, updated is %s \n",
+            System.out.printf("secret attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
                     secretProperty.isEnabled(), secretProperty.getNotBefore(), secretProperty.getExpiresOn(), secretProperty.getCreatedOn(), secretProperty.getUpdatedOn());
             String secret_url = secretProperty.getId();
             System.out.println("secret value: " + secret_url);
@@ -123,7 +123,7 @@ public class runAzureKeyVaultPoller
 
         //asynchronous call to key vault with null passed for callback to list secrets in vault
         secretAsyncClient.listPropertiesOfSecrets().subscribe(secretProperty -> {
-            System.out.printf("secret attributes : enabled is %s, notBefore is %s, expires is %s, created is %s, updated is %s \n",
+            System.out.printf("secret attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
                     secretProperty.isEnabled(), secretProperty.getNotBefore(), secretProperty.getExpiresOn(), secretProperty.getCreatedOn(), secretProperty.getUpdatedOn());
             String secret_url = secretProperty.getId();
             System.out.println("secret value: " + secret_url);
