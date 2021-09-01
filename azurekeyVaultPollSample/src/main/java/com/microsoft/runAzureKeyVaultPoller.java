@@ -7,6 +7,7 @@ import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
 import com.azure.security.keyvault.secrets.SecretAsyncClient;
@@ -14,6 +15,7 @@ import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import com.azure.security.keyvault.secrets.models.KeyVaultSecret;
 import org.springframework.beans.factory.annotation.Autowired;
+import reactor.core.publisher.Mono;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -21,21 +23,24 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 
 /**
- * Azure key Vault example,
- * load authentication at runtime,
- * create a key vault and keys and secrets in vault.
- * Continuously poll key vault for keys.
+ * A class that exemplifies the following:
+ * <ul>
+ * <li>How to load authentication at runtime.</li>
+ * <li>How to create a key vault.</li>
+ * <li>How to create keys and secrets in vault<li>
+ * <li>How to list said keys and secrets.</li>
+ * <li>How to sign and verify data using a given key.</li>
+ * </ul>
  *
  * Note: It is also possible to do authenication using:
  * TokenCredential credential = new ClientCertificateCredentialBuilder()
- *                 .clientId(clientId).tenantId(tenantId).pfxCertificate(pathPfx, pfxPassword).build();
+ *     .clientId(clientId).tenantId(tenantId).pfxCertificate(pathPfx, pfxPassword).build();
  *
- * However in this sample we need to use the asymmetric authentication method because
- * we want to do certificate based authentication
+ * However, in this sample we need to use the asymmetric authentication method because
+ * we want to do certificate based authentication.
  *
  * Also please note that OCT and EC types for keys are not supported yet
  *
@@ -71,89 +76,92 @@ public class runAzureKeyVaultPoller
     }
 
     /**
-     * Run the polling of Key Vault, and sign and verify operations
-     * @param tokenCredential Use it to build KeyClient,secretClient
+     * Performs basic Key Vault operations such as creating and listing keys and secrets. Additionally, it performs the sign and verify operations on some data using a key created beforehand.
+     * @param tokenCredential Credential used to build clients such as {@link KeyClient} and a {@link SecretClient}.
      * @param vaultBaseUrl the url of the vault where the secret and keys are stored
      */
     public static void runSample(TokenCredential tokenCredential, String vaultBaseUrl, Vault vault) throws InterruptedException {
 
-        KeyClient keyClient = new KeyClientBuilder().credential(tokenCredential).vaultUrl(vaultBaseUrl).buildClient();
-        SecretClient secretClient = new SecretClientBuilder().credential(tokenCredential).vaultUrl(vaultBaseUrl).buildClient();
+        KeyClient keyClient = new KeyClientBuilder()
+                .credential(tokenCredential)
+                .vaultUrl(vaultBaseUrl)
+                .buildClient();
+        SecretClient secretClient = new SecretClientBuilder()
+                .credential(tokenCredential)
+                .vaultUrl(vaultBaseUrl).buildClient();
         SecretAsyncClient secretAsyncClient = vault.secretClient();
 
-        //Example of how to create a key using keyClient, in the specified vault
+        // Example: Using the KeyClient, create a key synchronously in the specified vault.
         KeyVaultKey savedKey = keyClient.createKey("keyRSA", KeyType.RSA);
         System.out.println("The key Id is: " + savedKey.getId());
 
-        //Example: Async example of creating secret in specified vault, null passed for callback
-        secretAsyncClient.setSecret("secretNameInVault", "secretValue").subscribe(keyVaultSecret -> {
-            System.out.println("The secret value is: " + keyVaultSecret.getValue());
-        });
+        // Example: Using the SecretClient, create a secret synchronously in the specified vault.
+        secretAsyncClient.setSecret("secretNameInVault", "secretValue")
+                .subscribe(keyVaultSecret -> {
+                    System.out.println("The secret value is: " + keyVaultSecret.getValue());
+                });
 
         Thread.sleep(10000);
 
         System.out.println("Now listing keys and secrets in Azure Key Vault.");
 
-        keyClient.listPropertiesOfKeys().stream().forEach(keyProperty -> {
-            System.out.printf("key attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
-                    keyProperty.isEnabled(), keyProperty.getNotBefore(), keyProperty.getExpiresOn(), keyProperty.getCreatedOn(), keyProperty.getUpdatedOn());
-            System.out.println("key tag is: " + keyProperty.getTags());
-            System.out.println("key id: " + keyProperty.getId());
-            KeyVaultKey key = keyClient.getKey(keyProperty.getName());
-            String keyName = keyProperty.getName();
+        // Now let's list the existing keys in the vault and use them for signing data and verifying the signature.
+        keyClient.listPropertiesOfKeys().stream().forEach(keyProperties -> {
+            System.out.printf("Key attributes: EnabledOn:%s, NotBeforeOn:%s, ExpiresOn:%s, CreatedOn:%s, UpdatedOn:%s%n",
+                    keyProperties.isEnabled(), keyProperties.getNotBefore(), keyProperties.getExpiresOn(), keyProperties.getCreatedOn(), keyProperties.getUpdatedOn());
+            System.out.println("Key tags are: " + keyProperties.getTags());
+            System.out.println("Key ID: " + keyProperties.getId());
+
+            KeyVaultKey key = keyClient.getKey(keyProperties.getName());
+            String keyName = keyProperties.getName();
+            // Let's sign data using the
             try {
-                runSigning(key.getId(), vault, keyName, keyProperty.getId());
+                signAndVerify(key);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            System.out.println("Key in Key Vault: " + key.getId());
         });
 
-       secretClient.listPropertiesOfSecrets().stream().forEach(secretProperty -> {
-            System.out.printf("secret attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
-                    secretProperty.isEnabled(), secretProperty.getNotBefore(), secretProperty.getExpiresOn(), secretProperty.getCreatedOn(), secretProperty.getUpdatedOn());
-            String secret_url = secretProperty.getId();
-            System.out.println("secret value: " + secret_url);
-
-            KeyVaultSecret keyVaultSecret = secretClient.getSecret(secretProperty.getName());
-            String savedSecretValue = keyVaultSecret.getValue();
-            System.out.println("Secret in Key Vault Value: " + savedSecretValue);
+        // Similar to above, let's list the existing secrets in the vault.
+        secretClient.listPropertiesOfSecrets().stream().forEach(secretProperties -> {
+            System.out.printf("Secret attributes: EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s%n",
+                    secretProperties.isEnabled(), secretProperties.getNotBefore(), secretProperties.getExpiresOn(), secretProperties.getCreatedOn(), secretProperties.getUpdatedOn());
+            System.out.println("Secret ID: " + secretProperties.getId());
+            KeyVaultSecret keyVaultSecret = secretClient.getSecret(secretProperties.getName());
+            String secretValue = keyVaultSecret.getValue();
+            System.out.println("Secret value: " + secretValue);
         });
 
-        //asynchronous call to key vault with null passed for callback to list secrets in vault
-        secretAsyncClient.listPropertiesOfSecrets().subscribe(secretProperty -> {
-            System.out.printf("secret attributes : EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s \n",
-                    secretProperty.isEnabled(), secretProperty.getNotBefore(), secretProperty.getExpiresOn(), secretProperty.getCreatedOn(), secretProperty.getUpdatedOn());
-            String secret_url = secretProperty.getId();
-            System.out.println("secret value: " + secret_url);
-            secretAsyncClient.getSecret(secretProperty.getName()).subscribe(secret -> {
-                System.out.println("Secret in Key Vault Value: " + secret.getValue());
-            });
+        // It is also possible to perform these operations asynchronously.
+        secretAsyncClient.listPropertiesOfSecrets().subscribe(secretProperties -> {
+            System.out.printf("Secret attributes: EnabledOn %s, NotBeforeOn %s, ExpiresOn %s, CreatedOn %s, UpdatedOn %s%n",
+                    secretProperties.isEnabled(), secretProperties.getNotBefore(), secretProperties.getExpiresOn(), secretProperties.getCreatedOn(), secretProperties.getUpdatedOn());
+            System.out.println("Secret ID: " + secretProperties.getId());
+            secretAsyncClient.getSecret(secretProperties.getName()).subscribe(secret ->
+                    System.out.println("Secret value: " + secret.getValue()));
         });
         Thread.sleep(15000);
     }
 
     /**
-     * Run the sign and verify operations.
-     * This would be useful in a case where you want to create signature for
-     * some digital data and then verify that this signature is authentic.
-     * @param key_url the url of the key also known as Key Identifier
+     * Performs the data sign and verify operations.
+     * This is useful in case you want to create a signature for some data and then verify that said signature is authentic.
+     * @param key The key to use for signing and verifying the data.
      */
-    public static void runSigning(String key_url, Vault vault, String keyName, String keyId) throws NoSuchAlgorithmException, ExecutionException, InterruptedException, SignatureException, InvalidKeyException, NoSuchProviderException {
-
+    public static void signAndVerify(KeyVaultKey key) throws NoSuchAlgorithmException, ExecutionException, InterruptedException, SignatureException, InvalidKeyException, NoSuchProviderException {
+        String keyId = key.getId();
         CryptographyAsyncClient cryptographyAsyncClient = new CryptographyClientBuilder()
                 .credential(new DefaultAzureCredentialBuilder().build())
-                .keyIdentifier(key_url)
+                .keyIdentifier(keyId)
                 .buildAsyncClient();
 
-        digestSignResult digestSignResult = azureSignVerifier.KeyVaultSign(cryptographyAsyncClient, "SHA-256", keyId);
+        DigestSignResult digestSignResult = azureSignVerifier.keyVaultSign(cryptographyAsyncClient, "SHA-256", keyId);
 
-        Future<Boolean> verified256 = azureSignVerifier.KeyVaultVerify(vault, keyName, digestSignResult);
-        System.out.println("Verified SHA 256: " + verified256.get().toString());
+        Boolean verified256 = azureSignVerifier.keyVaultVerify(key, digestSignResult);
+        System.out.println("Verified SHA 256: " + verified256);
 
-        Future<Boolean> verifiedREST256 = azureSignVerifier.KeyVaultVerifyREST(cryptographyAsyncClient, digestSignResult);
-        System.out.println("Verified SHA 256 with REST verify: " + verifiedREST256.get().toString());
+        Mono<VerifyResult> verifiedREST256 = azureSignVerifier.keyVaultVerifyREST(cryptographyAsyncClient, digestSignResult);
+        System.out.println("Verified SHA 256 with REST verify: " + verifiedREST256.block().isValid());
     }
 }
 

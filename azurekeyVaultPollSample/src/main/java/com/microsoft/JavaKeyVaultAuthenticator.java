@@ -12,17 +12,16 @@ import java.util.Optional;
 public class JavaKeyVaultAuthenticator {
 
     /**
-     * Do certificate based authentication using pfx file
+     * Do certificate based authentication using your PFX file.
      *
      * @param clientId
-     *            also known as applicationId which is received after app
+     *            Also known as applicationId which is received as a part of the app creation process.
      * @param tenantId
-     *            also known as directoryId which is received after app
+     *            Also known as directoryId which is received as a part of the app creation process.
      * @param pathPfx
-     *            to pfx file
+     *            Path to your PFX certificate.
      * @param pfxPassword
-     *            the password to the pfx file, this can be empty if thats the value
-     *            given when it was created
+     *            Password to your PFX certificate, this can be empty if that's the value given when it was created.
      */
     public TokenCredential getTokenCredential(String clientId, String tenantId, String pathPfx, String pfxPassword) {
 
@@ -36,21 +35,27 @@ public class JavaKeyVaultAuthenticator {
     }
 
     /**
-     * Find the vault you want to operate by keyVaultName
+     * Find the vault you want to operate on by keyVaultName.
+     *
      * @param credential
-     *            Authorized to get keyVaultManager
+     *            Crecential to authenticate a {@link KeyVaultManager} with.
      * @param resourceGroupName
-     *            Use resourceGroupName to find Vaults
+     *            The name of the resource group your Key Vault is a part of.
      * @param vaultBaseUrl
-     *            Use vaultBaseUrl to find the vault to be operated in Vaults
-     * @return
+     *            The URL that identifies your Key Vault.
+     * @return A {@link Vault} object representing your Key Vault.
      */
     public Vault getVault(TokenCredential credential, String resourceGroupName, String vaultBaseUrl) {
 
         AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
         KeyVaultManager manager = KeyVaultManager.authenticate(credential, profile);
 
-        Optional<Vault> optional = manager.vaults().listByResourceGroup(resourceGroupName).stream().filter(vault -> vaultBaseUrl.equals(vault.vaultUri())).findFirst();
+        Optional<Vault> optional = manager
+                .vaults()
+                .listByResourceGroup(resourceGroupName)
+                .stream()
+                .filter(vault -> vaultBaseUrl.equals(vault.vaultUri()))
+                .findFirst();
         if (optional.isPresent()) {
             return optional.get();
         }

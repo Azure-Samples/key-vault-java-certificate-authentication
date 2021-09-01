@@ -1,12 +1,13 @@
 package com.microsoft;
 
-import com.azure.resourcemanager.keyvault.models.Vault;
 import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
 import com.azure.security.keyvault.keys.cryptography.models.SignResult;
 import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
+import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
+import com.azure.security.keyvault.keys.models.KeyVaultKey;
+import com.azure.security.keyvault.keys.models.KeyVaultKeyIdentifier;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -19,8 +20,6 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.security.Signature;
 import java.security.PublicKey;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class SignVerifySamplesKeyVault {
@@ -29,84 +28,75 @@ public class SignVerifySamplesKeyVault {
     }
 
     /**
-     * Use cryptographyAsyncClient to sign data
-     * Get the public key, and use it to validate the signature
-     * @param cryptographyAsyncClient Use cryptographyAsyncClient to sign data
-     * @param shaType the SHA type to use
-     * @param keyIdentifier the url of the key
+     * Use a {@link CryptographyAsyncClient} to sign data.
+     * The public part of a cryptographic key is required to sign the data.
+     * @param cryptographyAsyncClient The {@link CryptographyAsyncClient} used to perform the data signing operation.
+     * @param digestAlgorithm The name of digest algorithm to use for signing the data.
+     * @param keyIdentifier The Key Vault identifier for key to use for signing the data.
      */
     @Async
-    public static digestSignResult KeyVaultSign(CryptographyAsyncClient cryptographyAsyncClient, String shaType, String keyIdentifier) throws
-            NoSuchAlgorithmException, NoSuchProviderException {
+    public static DigestSignResult keyVaultSign(CryptographyAsyncClient cryptographyAsyncClient, String digestAlgorithm, String keyIdentifier) throws
+            NoSuchAlgorithmException {
 
-        MessageDigest md = MessageDigest.getInstance(shaType, BouncyCastleProvider.PROVIDER_NAME);
+        MessageDigest md = MessageDigest.getInstance(digestAlgorithm);
 
-        String key = keyIdentifier.substring(keyIdentifier.lastIndexOf('/') + 1);
-        System.out.println("The key is: " + key);
+        String keyName = new KeyVaultKeyIdentifier(keyIdentifier).getName();
+        System.out.println("The key is: " + keyName);
 
-        md.update(key.getBytes());
+        md.update(keyName.getBytes());
         byte[] digest = md.digest();
-        digestSignResult digestSignResult = new digestSignResult();
-        SignatureAlgorithm rsnull = SignatureAlgorithm.fromString("RSNULL");
-
-        //use cryptographyClient to to asynchronous signing passing in the uri of the key, type of algorithm to use, digest and null for callback function to handle responses
-        return  cryptographyAsyncClient.sign(rsnull, digest).flatMap(signResult -> {
-            digestSignResult.setResultSign(signResult);
-            digestSignResult.setDigestInfo(digest);
-            return Mono.just(digestSignResult);
-        }).block();
+        DigestSignResult digestSignResult = new DigestSignResult();
+        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.fromString("RSNULL");
+        // Use the CryptographyAsyncClient to asynchronously signing the data by providing the signing algorithm to use and the digest.
+        return cryptographyAsyncClient.sign(signatureAlgorithm, digest)
+                .flatMap(signResult -> {
+                    digestSignResult.setSignResult(signResult);
+                    digestSignResult.setDigestInfo(digest);
+                    return Mono.just(digestSignResult);
+                }).block();
     }
 
     /**
-     * Use Java Security to verify
-     * Get the public key, and use it to validate the signature
-     * @param vault Use vault to find key
-     * @param keyName Find key by keyName
-     * @param digestSignResult
-     *            digestInfo the digest from completing the hash
-     *            signResult the result of the signing using asynchronous call using cryptographyAsyncClient
+     * Uses Java Security to verify the contents of a given signature.
+     * The public part of a cryptographic key is required to perform this operation.
+     * @param keyVaultKey The key that will be used to verify the contents of the provided signature.
+     * @param digestSignResult An object containing the digest from completing the hash of the data and the SignResult
+     * obtained by using a {@link CryptographyAsyncClient} for signing it.
      */
     @Async
-    public static Future<Boolean> KeyVaultVerify(Vault vault, String keyName, digestSignResult digestSignResult) throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
+    public static Boolean keyVaultVerify(KeyVaultKey keyVaultKey, DigestSignResult digestSignResult) throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
 
-        KeyPair keyPair = vault.keys().getByNameAndVersion(keyName, null).getJsonWebKey().toRsa();
+        KeyPair keyPair = keyVaultKey.getKey().toRsa();
         PublicKey publicKey = keyPair.getPublic();
 
         Signature sig = Signature.getInstance("NONEwithRSA", BouncyCastleProvider.PROVIDER_NAME);
         sig.initVerify(publicKey);
         sig.update(digestSignResult.digestInfo);
-        Boolean verifies = sig.verify(digestSignResult.getSignResult().getSignature());
-        return new AsyncResult<Boolean>(verifies);
+        return sig.verify(digestSignResult.getSignResult().getSignature());
     }
 
     /**
-     * Use REST to verify SHA256
-     * Get the public key, and use it to validate the signature
-     * Using REST client also assumes that verify policy is allowed on the vault, if not enabled then please enable
-     * @param cryptographyAsyncClient
-     *            Use cryptographyAsyncClient to verify
-     * @param digestSignResult
-     *            signResult:the result of using cryptographyAsyncClient for signing the data
-     *            digestInfo:the digest from the hashing
+     * Uses Java Security to verify the contents of a given signature.
+     * The public part of a cryptographic key is required to perform this operation.
+     * Use a {@link CryptographyAsyncClient} to verify the data using the SHA-256 algorithm via the Key Vault service.
+     * The public part of a cryptographic key is required to perform this operation.
+     * Using this client also requires the key it was created with to have the verify permission on the vault. Please, make sure it is enabled.
+     * @param cryptographyAsyncClient The {@link CryptographyAsyncClient} used to perform the verify operation.
+     * @param digestSignResult An object containing the digest from completing the hash of the data and the SignResult
+     * obtained by using a {@link CryptographyAsyncClient} for signing it.
      */
     @Async
-    public static Future<Boolean> KeyVaultVerifyREST(CryptographyAsyncClient cryptographyAsyncClient, digestSignResult digestSignResult) {
-        AtomicReference<AsyncResult<Boolean>> booleanAsyncResult = new AtomicReference<>(new AsyncResult<>(null));
-
-        //verify using asynchronous call passing in uri of the key, type of algorithm to use, digest, result of signing and null for callback function to handle responses
-        return  cryptographyAsyncClient
-                .verify(SignatureAlgorithm.RS256, digestSignResult.getDigestInfo(), digestSignResult.getSignResult().getSignature())
-                .flatMap(verifyResult -> {
-                    booleanAsyncResult.set(new AsyncResult<>(verifyResult.isValid()));
-                    return Mono.just(booleanAsyncResult.get());
-                }).block();
+    public static Mono<VerifyResult> keyVaultVerifyREST(CryptographyAsyncClient cryptographyAsyncClient, DigestSignResult digestSignResult) {
+        // Use the CryptographyAsyncClient to asynchronously verify the signature by providing signing algorithm to use, digest and the signature itself.
+        return cryptographyAsyncClient.verify(SignatureAlgorithm.RS256, digestSignResult.getDigestInfo(),
+                digestSignResult.getSignResult().getSignature());
     }
 }
 
-class digestSignResult{
+class DigestSignResult{
     byte[] digestInfo;
     SignResult signResult;
-    public digestSignResult() {
+    public DigestSignResult() {
 
     }
 
@@ -122,7 +112,7 @@ class digestSignResult{
         return signResult;
     }
 
-    public void setResultSign(SignResult signResult) {
+    public void setSignResult(SignResult signResult) {
         this.signResult = signResult;
     }
 }
