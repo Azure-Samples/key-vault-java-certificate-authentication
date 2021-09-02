@@ -38,7 +38,7 @@ public class JavaKeyVaultAuthenticator {
      * Find the vault you want to operate on by keyVaultName.
      *
      * @param credential
-     *            Crecential to authenticate a {@link KeyVaultManager} with.
+     *            Credential to authenticate a {@link KeyVaultManager} with.
      * @param resourceGroupName
      *            The name of the resource group your Key Vault is a part of.
      * @param vaultBaseUrl

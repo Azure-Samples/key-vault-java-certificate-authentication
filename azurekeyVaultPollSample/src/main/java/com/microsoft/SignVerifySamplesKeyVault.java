@@ -36,9 +36,9 @@ public class SignVerifySamplesKeyVault {
      */
     @Async
     public static DigestSignResult keyVaultSign(CryptographyAsyncClient cryptographyAsyncClient, String digestAlgorithm, String keyIdentifier) throws
-            NoSuchAlgorithmException {
+            NoSuchAlgorithmException, NoSuchProviderException {
 
-        MessageDigest md = MessageDigest.getInstance(digestAlgorithm);
+        MessageDigest md = MessageDigest.getInstance(digestAlgorithm, BouncyCastleProvider.PROVIDER_NAME);
 
         String keyName = new KeyVaultKeyIdentifier(keyIdentifier).getName();
         System.out.println("The key is: " + keyName);

@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutionException;
  * <ul>
  * <li>How to load authentication at runtime.</li>
  * <li>How to create a key vault.</li>
- * <li>How to create keys and secrets in vault<li>
+ * <li>How to create keys and secrets in vault</li>
  * <li>How to list said keys and secrets.</li>
  * <li>How to sign and verify data using a given key.</li>
  * </ul>
@@ -42,9 +42,9 @@ import java.util.concurrent.ExecutionException;
  * However, in this sample we need to use the asymmetric authentication method because
  * we want to do certificate based authentication.
  *
- * Also please note that OCT and EC types for keys are not supported yet
+ * Also please note that OCT types for keys are not supported yet.
  *
- * In addition, the the field pfxPassword can be empty string if that was the way you created the certificate
+ * In addition, the field {@code pfxPassword} can be an empty string if that was the way you created the certificate.
  */
 
 public class runAzureKeyVaultPoller
@@ -88,7 +88,8 @@ public class runAzureKeyVaultPoller
                 .buildClient();
         SecretClient secretClient = new SecretClientBuilder()
                 .credential(tokenCredential)
-                .vaultUrl(vaultBaseUrl).buildClient();
+                .vaultUrl(vaultBaseUrl)
+                .buildClient();
         SecretAsyncClient secretAsyncClient = vault.secretClient();
 
         // Example: Using the KeyClient, create a key synchronously in the specified vault.
@@ -113,8 +114,8 @@ public class runAzureKeyVaultPoller
             System.out.println("Key ID: " + keyProperties.getId());
 
             KeyVaultKey key = keyClient.getKey(keyProperties.getName());
-            String keyName = keyProperties.getName();
-            // Let's sign data using the
+
+            // Let's sign the data and verify the signature using the retrieved key.
             try {
                 signAndVerify(key);
             } catch (Exception e) {
