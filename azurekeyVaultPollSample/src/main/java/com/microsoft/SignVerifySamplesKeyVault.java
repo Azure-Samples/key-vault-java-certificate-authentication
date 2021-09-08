@@ -1,18 +1,25 @@
 package com.microsoft;
 
-import com.microsoft.azure.keyvault.KeyVaultClient;
-import com.microsoft.azure.keyvault.models.KeyOperationResult;
-import com.microsoft.azure.keyvault.models.KeyVerifyResult;
-import com.microsoft.azure.keyvault.webkey.JsonWebKeySignatureAlgorithm;
-import com.microsoft.rest.ServiceFuture;
+import com.azure.security.keyvault.keys.cryptography.CryptographyAsyncClient;
+import com.azure.security.keyvault.keys.cryptography.models.SignResult;
+import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
+import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
+import com.azure.security.keyvault.keys.models.KeyVaultKey;
+import com.azure.security.keyvault.keys.models.KeyVaultKeyIdentifier;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
-import java.security.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.Security;
+import java.security.Signature;
+import java.security.PublicKey;
 
 @Component
 public class SignVerifySamplesKeyVault {
@@ -21,86 +28,76 @@ public class SignVerifySamplesKeyVault {
     }
 
     /**
-     * Use KeyVaultClient to sign data
-     * Get the public key, and use it to validate the signature
-     * @param kvClient instance of Azure KeyVaultClient
-     * @param keyIdentifier the url of the key
-     * @param shaType the SHA type to use
-     * @param keySignatureAlgorithm the signing algorithm to use
+     * Use a {@link CryptographyAsyncClient} to sign data.
+     * The public part of a cryptographic key is required to sign the data.
+     * @param cryptographyAsyncClient The {@link CryptographyAsyncClient} used to perform the data signing operation.
+     * @param digestAlgorithm The name of digest algorithm to use for signing the data.
+     * @param keyIdentifier The Key Vault identifier for key to use for signing the data.
      */
     @Async
-    public static digestSignResult KeyVaultSign(KeyVaultClient kvClient, String keyIdentifier, String shaType, JsonWebKeySignatureAlgorithm keySignatureAlgorithm) throws
-                                                    NoSuchAlgorithmException, InterruptedException, ExecutionException, InvalidKeyException, SignatureException, NoSuchProviderException {
+    public static DigestSignResult keyVaultSign(CryptographyAsyncClient cryptographyAsyncClient, String digestAlgorithm, String keyIdentifier) throws
+            NoSuchAlgorithmException, NoSuchProviderException {
 
-        MessageDigest hash = MessageDigest.getInstance(shaType, BouncyCastleProvider.PROVIDER_NAME);
+        MessageDigest md = MessageDigest.getInstance(digestAlgorithm, BouncyCastleProvider.PROVIDER_NAME);
 
-        String key = keyIdentifier.substring(keyIdentifier.lastIndexOf('/') + 1);
-        System.out.println("The key is: " + key);
-        byte[] keyBytes = key.getBytes();
+        String keyName = new KeyVaultKeyIdentifier(keyIdentifier).getName();
+        System.out.println("The key is: " + keyName);
 
-        hash.update(keyBytes);
-        byte[] digestInfo = hash.digest();
-
-        //use KeyVaultClient to to asynchronous signing passing in the uri of the key, type of algorithm to use, digest and null for callback function to handle responses
-        ServiceFuture<KeyOperationResult> result = kvClient.signAsync(keyIdentifier, keySignatureAlgorithm, digestInfo, null);
-
-        return new digestSignResult(digestInfo, result);
+        md.update(keyName.getBytes());
+        byte[] digest = md.digest();
+        DigestSignResult digestSignResult = new DigestSignResult();
+        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.fromString("RSNULL");
+        // Use the CryptographyAsyncClient to asynchronously signing the data by providing the signing algorithm to use and the digest.
+        return cryptographyAsyncClient.sign(signatureAlgorithm, digest)
+                .flatMap(signResult -> {
+                    digestSignResult.setSignResult(signResult);
+                    digestSignResult.setDigestInfo(digest);
+                    return Mono.just(digestSignResult);
+                }).block();
     }
 
     /**
-     * Use Java Security to verify
-     * Get the public key, and use it to validate the signature
-     * @param kvClient instance of Azure KeyVaultClient
-     * @param keyIdentifier the url of the key
-     * @param digestInfo the digest from completing the hash
-     * @param result the result of the signing using asynchronous call using KeyVaultClient
+     * Uses Java Security to verify the contents of a given signature.
+     * The public part of a cryptographic key is required to perform this operation.
+     * @param keyVaultKey The key that will be used to verify the contents of the provided signature.
+     * @param digestSignResult An object containing the digest from completing the hash of the data and the SignResult
+     * obtained by using a {@link CryptographyAsyncClient} for signing it.
      */
     @Async
-    public static Future<Boolean> KeyVaultVerify(KeyVaultClient kvClient, String keyIdentifier, byte[] digestInfo,
-                                                 ServiceFuture<KeyOperationResult> result) throws NoSuchAlgorithmException, ExecutionException, InvalidKeyException,
-                                                                                                    InterruptedException, NoSuchProviderException, SignatureException {
+    public static Boolean keyVaultVerify(KeyVaultKey keyVaultKey, DigestSignResult digestSignResult) throws InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
 
-        //asynchronous call to key vault with null passed for callback for handling successful and failed responses
-        KeyPair rsaKey = kvClient.getKeyAsync(keyIdentifier,null).get().key().toRSA();
-        PublicKey publicKey = rsaKey.getPublic();
+        KeyPair keyPair = keyVaultKey.getKey().toRsa();
+        PublicKey publicKey = keyPair.getPublic();
 
         Signature sig = Signature.getInstance("NONEwithRSA", BouncyCastleProvider.PROVIDER_NAME);
         sig.initVerify(publicKey);
-        sig.update(digestInfo);
-        Boolean verifies = sig.verify(result.get().result());
-
-        return new AsyncResult<Boolean>(verifies);
+        sig.update(digestSignResult.digestInfo);
+        return sig.verify(digestSignResult.getSignResult().getSignature());
     }
 
     /**
-     * Use REST to verify SHA256
-     * Get the public key, and use it to validate the signature
-     * Using REST client also assumes that verify policy is allowed on the vault, if not enabled then please enable
-     * @param kvClient instance of Azure KeyVaultClient
-     * @param keyIdentifier the url of the key
-     * @param keySignatureAlgorithm the signing algorithm that was used
-     * @param result the result of using KeyVaultClient for signing the data
-     * @param digestInfo the digest from the hashing
+     * Uses Java Security to verify the contents of a given signature.
+     * The public part of a cryptographic key is required to perform this operation.
+     * Use a {@link CryptographyAsyncClient} to verify the data using the SHA-256 algorithm via the Key Vault service.
+     * The public part of a cryptographic key is required to perform this operation.
+     * Using this client also requires the key it was created with to have the verify permission on the vault. Please, make sure it is enabled.
+     * @param cryptographyAsyncClient The {@link CryptographyAsyncClient} used to perform the verify operation.
+     * @param digestSignResult An object containing the digest from completing the hash of the data and the SignResult
+     * obtained by using a {@link CryptographyAsyncClient} for signing it.
      */
     @Async
-    public static Future<Boolean> KeyVaultVerifyREST(KeyVaultClient kvClient, String keyIdentifier, JsonWebKeySignatureAlgorithm keySignatureAlgorithm,
-                                                     ServiceFuture<KeyOperationResult> result, byte[] digestInfo) throws InterruptedException, ExecutionException {
-
-        //verify using asynchronous call passing in uri of the key, type of algorithm to use, digest, result of signing and null for callback function to handle responses
-        ServiceFuture<KeyVerifyResult> b = kvClient.verifyAsync(keyIdentifier, keySignatureAlgorithm, digestInfo, result.get().result(),null);
-
-        return new AsyncResult<Boolean>(b.get().value());
+    public static Mono<VerifyResult> keyVaultVerifyREST(CryptographyAsyncClient cryptographyAsyncClient, DigestSignResult digestSignResult) {
+        // Use the CryptographyAsyncClient to asynchronously verify the signature by providing signing algorithm to use, digest and the signature itself.
+        return cryptographyAsyncClient.verify(SignatureAlgorithm.RS256, digestSignResult.getDigestInfo(),
+                digestSignResult.getSignResult().getSignature());
     }
-
 }
 
-class digestSignResult{
+class DigestSignResult{
     byte[] digestInfo;
-    ServiceFuture<KeyOperationResult> resultSign;
+    SignResult signResult;
+    public DigestSignResult() {
 
-    public digestSignResult(byte[] digestInfo, ServiceFuture<KeyOperationResult> resultSign) {
-        this.digestInfo = digestInfo;
-        this.resultSign = resultSign;
     }
 
     public byte[] getDigestInfo() {
@@ -111,11 +108,11 @@ class digestSignResult{
         this.digestInfo = digestInfo;
     }
 
-    public ServiceFuture<KeyOperationResult> getResultSign() {
-        return resultSign;
+    public SignResult getSignResult() {
+        return signResult;
     }
 
-    public void setResultSign(ServiceFuture<KeyOperationResult> resultSign) {
-        this.resultSign = resultSign;
+    public void setSignResult(SignResult signResult) {
+        this.signResult = signResult;
     }
 }
